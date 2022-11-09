@@ -181,7 +181,7 @@ if entire_day=='Yes':
             df=pd.DataFrame({'Date':date2,'MPH':result},index=[0])
             return df
     
-        results=Parallel(n_jobs=-1, prefer="threads")(delayed(get_data_date_time)(i,lat,lon) for i in dates_times)
+        results=Parallel(n_jobs=4, prefer="threads")(delayed(get_data_date_time)(i,lat,lon) for i in dates_times)
         df_all=pd.concat(results)
         df_all['MPH']=df_all['MPH'].round(2)
        
