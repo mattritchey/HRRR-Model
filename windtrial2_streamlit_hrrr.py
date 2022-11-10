@@ -201,18 +201,18 @@ if entire_day == 'Yes':
         df_all['MPH'] = df_all['MPH'].round(2)
        
         
-        # gif(projected_org[variable], to='ds.gif',
-        #     date_format='%m-%d-%Y: %I%p', cmap="RdBu_r", vmax=35)
+        gif(projected_org[variable], to='ds.gif',
+            date_format='%m-%d-%Y: %I%p', cmap="RdBu_r", vmax=35)
 
-        # file_ = open("ds.gif", "rb")
-        # contents = file_.read()
-        # data_url = base64.b64encode(contents).decode("utf-8")
-        # file_.close()
+        file_ = open("ds.gif", "rb")
+        contents = file_.read()
+        data_url = base64.b64encode(contents).decode("utf-8")
+        file_.close()
 
-        # st.markdown(
-        #     f'<img src="data:image/gif;base64,{data_url}" alt="ds gif" width="1200">',
-        #     unsafe_allow_html=True,
-        # )
+        st.markdown(
+            f'<img src="data:image/gif;base64,{data_url}" alt="ds gif" width="1200">',
+            unsafe_allow_html=True,
+        )
 
     fig = px.line(df_all, x="Date", y="MPH")
     with col2:
