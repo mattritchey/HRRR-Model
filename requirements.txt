@@ -1,3 +1,4 @@
+zarr
 branca==0.5.0
 folium==0.12.1
 geopy==2.2.0
@@ -12,5 +13,4 @@ rioxarray==0.12.2
 s3fs==2022.10.0
 streamlit==1.4.0
 streamlit_folium==0.6.15
-zarr==2.4.0
-xarray[complete]==2022.3.0
+xarray[complete]
