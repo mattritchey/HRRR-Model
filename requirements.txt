@@ -10,7 +10,6 @@ pandas==1.4.2
 plotly==5.7.0
 pyproj==3.3.1
 rasterio==1.2.10
-rioxarray==0.12.2
 s3fs==2022.10.0
 streamlit==1.4.0
 streamlit_folium==0.6.15
