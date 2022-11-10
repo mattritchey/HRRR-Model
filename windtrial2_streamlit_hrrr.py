@@ -4,7 +4,7 @@ Created on Fri Oct 14 10:35:25 2022
 
 @author: mritchey
 """
-#streamlit run "C:\Users\mritchey\.spyder-py3\Python Scripts\streamlit projects\windtrial2_streamlit_hrrr.py"
+#streamlit run "C:\Users\mritchey\.spyder-py3\Python Scripts\streamlit projects\windtrial2_streamlit_hrrr 2.py"
 import streamlit as st
 from streamlit_folium import st_folium
 import pandas as pd
@@ -13,6 +13,7 @@ from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 import datetime
 import rasterio
+import rioxarray
 import numpy as np
 import branca.colormap as cm
 from matplotlib import colors as colors
@@ -22,7 +23,8 @@ import s3fs
 import xarray as xr
 import itertools
 from pyproj import CRS, Transformer
-
+from geogif import gif
+import base64
 
 def mapvalue2color(value, cmap):
 
@@ -197,20 +199,20 @@ if entire_day == 'Yes':
         df_all = result.to_dataframe()[variable].reset_index()
         df_all.columns = ['Date', 'MPH']
         df_all['MPH'] = df_all['MPH'].round(2)
-        from geogif import gif
-        import base64
-        gif(projected_org[variable], to='ds.gif',
-            date_format='%m-%d-%Y: %I%p', cmap="RdBu_r", vmax=35)
+       
+        
+        # gif(projected_org[variable], to='ds.gif',
+        #     date_format='%m-%d-%Y: %I%p', cmap="RdBu_r", vmax=35)
 
-        file_ = open("ds.gif", "rb")
-        contents = file_.read()
-        data_url = base64.b64encode(contents).decode("utf-8")
-        file_.close()
+        # file_ = open("ds.gif", "rb")
+        # contents = file_.read()
+        # data_url = base64.b64encode(contents).decode("utf-8")
+        # file_.close()
 
-        st.markdown(
-            f'<img src="data:image/gif;base64,{data_url}" alt="ds gif" width="1200">',
-            unsafe_allow_html=True,
-        )
+        # st.markdown(
+        #     f'<img src="data:image/gif;base64,{data_url}" alt="ds gif" width="1200">',
+        #     unsafe_allow_html=True,
+        # )
 
     fig = px.line(df_all, x="Date", y="MPH")
     with col2:
