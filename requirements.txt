@@ -1,3 +1,4 @@
+ecmwflibs
 zarr
 cfgrib
 branca==0.5.0
