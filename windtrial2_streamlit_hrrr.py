@@ -26,6 +26,11 @@ from pyproj import CRS, Transformer
 from geogif import gif
 import base64
 
+@st.cache
+def convert_df(df):
+    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+    return df.to_csv(index=0).encode('utf-8')
+
 def mapvalue2color(value, cmap):
 
     if np.isnan(value):
@@ -220,11 +225,6 @@ if entire_day == 'Yes':
     with col2:
         st.title(f'{analysis_forecast1}')
         st.plotly_chart(fig)
-
-        @st.cache
-        def convert_df(df):
-            # IMPORTANT: Cache the conversion to prevent computation on every rerun
-            return df.to_csv(index=0).encode('utf-8')
 
         csv = convert_df(df_all)
 
