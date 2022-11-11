@@ -211,7 +211,7 @@ if entire_day == 'Yes':
             gif(projected_org[variable], to='ds.gif',
                 date_format='%m-%d-%Y: %I%p', cmap="RdBu_r", vmax=35)
     
-            # file_ = open("ds.gif", "rb")
+            file_ = open("ds.gif", "rb")
             # contents = file_.read()
             # data_url = base64.b64encode(contents).decode("utf-8")
             # file_.close()
