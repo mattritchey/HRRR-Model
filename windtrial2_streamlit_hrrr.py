@@ -50,8 +50,11 @@ d = st.sidebar.date_input(
 
 time = st.sidebar.selectbox('Time:', ('12 AM', '6 AM', '12 PM', '6 PM',))
 type_wind = st.sidebar.selectbox('Type:', ('Gust', 'Wind'))
-analysis_forecast1 = st.sidebar.selectbox(
-    'Analysis or Forecast:', ('Analysis', 'Forecast'))
+analysis_forecast1 = st.sidebar.radio('Analysis or Forecast:', ('Analysis', 'Forecast'))
+entire_day = st.sidebar.radio('Graph Entire Day/Forecast (Takes a Bit):', ('No', 'Yes'))
+animate_forecast = st.sidebar.radio(
+    'Animate Forecast:', ('No', 'Yes'))
+
 
 if analysis_forecast1 == 'Analysis':
     analysis_forecast = 'anl'
@@ -59,8 +62,7 @@ else:
     analysis_forecast = 'fcst'
 
 
-entire_day = st.sidebar.selectbox(
-    'Graph Entire Day/Forecast (Takes a Bit):', ('No', 'Yes'))
+
 
 if time[-2:] == 'PM' and int(time[:2].strip()) < 12:
    t = datetime.time(int(time[:2].strip())+12, 00).strftime('%H')+'00'
@@ -199,19 +201,20 @@ if entire_day == 'Yes':
         df_all = result.to_dataframe()[variable].reset_index()
         df_all.columns = ['Date', 'MPH']
         df_all['MPH'] = df_all['MPH'].round(2)
-       #Not working
-        # gif(projected_org[variable], to='ds.gif',
-        #     date_format='%m-%d-%Y: %I%p', cmap="RdBu_r", vmax=35)
-
-        # file_ = open("ds.gif", "rb")
-        # contents = file_.read()
-        # data_url = base64.b64encode(contents).decode("utf-8")
-        # file_.close()
-
-        # st.markdown(
-        #     f'<img src="data:image/gif;base64,{data_url}" alt="ds gif" width="1200">',
-        #     unsafe_allow_html=True,
-        # )
+        if animate_forecast=='Yes':
+           #Not working
+            gif(projected_org[variable], to='ds.gif',
+                date_format='%m-%d-%Y: %I%p', cmap="RdBu_r", vmax=35)
+    
+            file_ = open("ds.gif", "rb")
+            contents = file_.read()
+            data_url = base64.b64encode(contents).decode("utf-8")
+            file_.close()
+    
+            st.markdown(
+                f'<img src="data:image/gif;base64,{data_url}" alt="ds gif" width="1200">',
+                unsafe_allow_html=True,
+            )
 
     fig = px.line(df_all, x="Date", y="MPH")
     with col2:
