@@ -4,32 +4,66 @@ Created on Fri Oct 14 10:35:25 2022
 
 @author: mritchey
 """
-#streamlit run "C:\Users\mritchey\.spyder-py3\Python Scripts\streamlit projects\windtrial2_streamlit_hrrr 2.py"
-import streamlit as st
-from streamlit_folium import st_folium
-import pandas as pd
-import folium
-from geopy.geocoders import Nominatim
-from geopy.extra.rate_limiter import RateLimiter
+
+import base64
 import datetime
+import itertools
+import os
+
+import branca.colormap as cm
+import folium
+import numpy as np
+import pandas as pd
+import plotly.express as px
 import rasterio
 import rioxarray
-import numpy as np
-import branca.colormap as cm
-from matplotlib import colors as colors
-from joblib import Parallel, delayed
-import plotly.express as px
 import s3fs
+
+import streamlit as st
 import xarray as xr
-import itertools
-from pyproj import CRS, Transformer
 from geogif import gif
-import base64
+from geopy.extra.rate_limiter import RateLimiter
+from geopy.geocoders import Nominatim
+from joblib import Parallel, delayed
+from matplotlib import colors as colors
+from pyproj import CRS, Transformer
+from streamlit_folium import st_folium
+
 
 @st.cache
 def convert_df(df):
     # IMPORTANT: Cache the conversion to prevent computation on every rerun
     return df.to_csv(index=0).encode('utf-8')
+
+@st.cache
+def geocode(address):
+    try:
+        address2 = address.replace(' ', '+').replace(',', '%2C')
+        df = pd.read_json(
+            f'https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address={address2}&benchmark=2020&format=json')
+        results = df.iloc[:1, 0][0][0]['coordinates']
+        lat, lon = results['y'], results['x']
+    except:
+        geolocator = Nominatim(user_agent="GTA Lookup")
+        geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
+        location = geolocator.geocode(address)
+        lat, lon = location.latitude, location.longitude
+    return lat, lon
+
+@st.cache
+def get_data_date_time(date_time, lat, lon):
+    date, time = date_time
+    path = f"hrrrzarr/sfc/{date}/{date}_{time[-2:]}z_{analysis_forecast}.zarr/{vertical_level}/{variable}"
+    try:
+        ds = xr.open_mfdataset([lookup(path), lookup(f"{path}/{vertical_level}")],
+                               engine="zarr")
+        result = ds.sel(projection_x_coordinate=lon, projection_y_coordinate=lat, method="nearest")[
+            variable].values*2.23694
+    except:
+        result = None
+    date2 = pd.to_datetime(str(date)+str(time), format='%Y%m%d%H')
+    df = pd.DataFrame({'Date': date2, 'MPH': result}, index=[0])
+    return df
 
 def mapvalue2color(value, cmap):
 
@@ -40,7 +74,8 @@ def mapvalue2color(value, cmap):
 
 
 def lookup(path):
-	return s3fs.S3Map(path, s3=s3)
+    return s3fs.S3Map(path, s3=s3)
+
 
 
 s3 = s3fs.S3FileSystem(anon=True)
@@ -55,8 +90,10 @@ d = st.sidebar.date_input(
 
 time = st.sidebar.selectbox('Time:', ('12 AM', '6 AM', '12 PM', '6 PM',))
 type_wind = st.sidebar.selectbox('Type:', ('Gust', 'Wind'))
-analysis_forecast1 = st.sidebar.radio('Analysis or Forecast:', ('Analysis', 'Forecast'))
-entire_day = st.sidebar.radio('Graph Entire Day/Forecast (Takes a Bit):', ('No', 'Yes'))
+analysis_forecast1 = st.sidebar.radio(
+    'Analysis or Forecast:', ('Analysis', 'Forecast'))
+entire_day = st.sidebar.radio(
+    'Graph Entire Day/Forecast (Takes a Bit):', ('No', 'Yes'))
 animate_forecast = st.sidebar.radio(
     'Animate Forecast:', ('No', 'Yes'))
 
@@ -67,14 +104,12 @@ else:
     analysis_forecast = 'fcst'
 
 
-
-
 if time[-2:] == 'PM' and int(time[:2].strip()) < 12:
-   t = datetime.time(int(time[:2].strip())+12, 00).strftime('%H')+'00'
+    t = datetime.time(int(time[:2].strip())+12, 00).strftime('%H')+'00'
 elif time[-2:] == 'AM' and int(time[:2].strip()) == 12:
-   t = '0000'
+    t = '0000'
 else:
-   t = datetime.time(int(time[:2].strip()), 00).strftime('%H')+'00'
+    t = datetime.time(int(time[:2].strip()), 00).strftime('%H')+'00'
 
 year, month, day = d[:4], d[4:6], d[6:8]
 
@@ -92,12 +127,7 @@ path = f"hrrrzarr/sfc/{d}/{d}_{t[:2]}z_{analysis_forecast}.zarr/{vertical_level}
 ds = xr.open_mfdataset([lookup(path), lookup(f"{path}/{vertical_level}")],
                        engine="zarr")
 
-geolocator = Nominatim(user_agent="GTA Lookup")
-geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
-
-location = geolocator.geocode(address)
-
-lat, lon = location.latitude, location.longitude
+lat, lon = geocode(address)
 
 ds = ds.rename(projection_x_coordinate="x", projection_y_coordinate="y")
 crs = CRS.from_cf({"grid_mapping_name": "lambert_conformal_conic",
@@ -177,27 +207,15 @@ crs = CRS.from_cf({"grid_mapping_name": "lambert_conformal_conic",
 proj = Transformer.from_crs(4326, crs, always_xy=True)
 lon2, lat2 = proj.transform(lon, lat)
 
+
 if entire_day == 'Yes':
     if analysis_forecast == 'anl':
         times = [f'0{str(i)}'[-2:] for i in range(0, 24)]
         dates_times = list(itertools.product([d], times))
-
-        def get_data_date_time(date_time, lat, lon):
-            date, time = date_time
-            path = f"hrrrzarr/sfc/{date}/{date}_{time[-2:]}z_{analysis_forecast}.zarr/{vertical_level}/{variable}"
-            try:
-                ds = xr.open_mfdataset([lookup(path), lookup(f"{path}/{vertical_level}")],
-                                       engine="zarr")
-                result = ds.sel(projection_x_coordinate=lon2, projection_y_coordinate=lat2, method="nearest")[
-                    variable].values*2.23694
-            except:
-                result = None
-            date2 = pd.to_datetime(str(date)+str(time), format='%Y%m%d%H')
-            df = pd.DataFrame({'Date': date2, 'MPH': result}, index=[0])
-            return df
-
+        
         results = Parallel(n_jobs=-1, prefer="threads")(
-            delayed(get_data_date_time)(i, lat, lon) for i in dates_times)
+            delayed(get_data_date_time)(i, lat2, lon2) for i in dates_times)
+
         df_all = pd.concat(results)
         df_all['MPH'] = df_all['MPH'].round(2)
 
@@ -206,20 +224,24 @@ if entire_day == 'Yes':
         df_all = result.to_dataframe()[variable].reset_index()
         df_all.columns = ['Date', 'MPH']
         df_all['MPH'] = df_all['MPH'].round(2)
-        if animate_forecast=='Yes':
-            #Not working
+        if animate_forecast == 'Yes':
+            # Not working
             gif(projected_org[variable], to='ds.gif',
                 date_format='%m-%d-%Y: %I%p', cmap="RdBu_r", vmax=35)
-    
+            st.download_button(
+                label="Download Gif",
+                data='ds.gif',
+                file_name='ds.gif',
+            )
             file_ = open("ds.gif", "rb")
-            # contents = file_.read()
-            # data_url = base64.b64encode(contents).decode("utf-8")
-            # file_.close()
-    
-            # st.markdown(
-            #     f'<img src="data:image/gif;base64,{data_url}" alt="ds gif" width="1200">',
-            #     unsafe_allow_html=True,
-            # )
+            contents = file_.read()
+            data_url = base64.b64encode(contents).decode("utf-8")
+            file_.close()
+
+            st.markdown(
+                f'<img src="data:image/gif;base64,{data_url}" alt="ds gif" width="1200">',
+                unsafe_allow_html=True,
+            )
 
     fig = px.line(df_all, x="Date", y="MPH")
     with col2:
